@@ -1,5 +1,6 @@
-import os
+﻿import os
 import json
+import logging
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -10,11 +11,15 @@ from telegram.ext import (
     MessageHandler
 )
 
+# Configurando el módulo de registro en Python.
+logging.basicConfig(filename='error.log', level=logging.ERROR)
+
 # Cargar variables de entorno desde el archivo config.env en la carpeta env
 load_dotenv(dotenv_path=os.path.join(os.getcwd(), 'env', 'config.env'))
 
 # Accede al valor del TOKEN
 TOKEN = os.getenv('Token')
+
 
 # Lista de Verdades disponibles
 
@@ -30,11 +35,23 @@ def cargar_verdades():
 Verdades_disponibles = cargar_verdades()
 
 
-async def Hola(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Hola {update.effective_user.first_name}')
+async def Hola(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+
+    try:
+        await update.message.reply_text(
+            f'Hola {update.effective_user.first_name}'
+            )
+    except Exception as e:
+        logging.exception(e)
 
 
-async def Verdad(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def Verdad(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
     if len(context.args) == 0:
         await update.message.reply_text(
             "No se ha proporcionado un número de verdad."
@@ -49,14 +66,17 @@ async def Verdad(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             f"Verdad {Verdad_index + 1}: {verdad_seleccionada}"
             )
     except IndexError:
-        await update.message.reply_text("La verdad seleccionada no es válida.")
+        logging.exception("La verdad seleccionada no es válida.")
 
 
 async def handle_message(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    await update.message.reply_text("Lo siento, no entiendo ese comando.")
+    try:
+        await print("Lo siento, no entiendo ese comando.")
+    except Exception as e:
+        logging.exception(e)
 
 
 app = ApplicationBuilder().token(TOKEN).build()
@@ -65,7 +85,7 @@ app.add_handler(CommandHandler("Hola", Hola))
 app.add_handler(CommandHandler("Verdad", Verdad))
 
 # Maneja todos los mensajes de texto
-app.add_handler(MessageHandler(filters.Text, handle_message))
+app.add_handler(MessageHandler(filters.Text(), handle_message))
 
-# arranca el Bot
+# Arranca el Bot
 app.run_polling()
