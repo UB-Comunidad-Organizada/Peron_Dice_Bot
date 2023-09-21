@@ -33,14 +33,18 @@ async def Verdad(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     if len(context.args) == 0:
-        await update.message.reply_text("No se ha proporcionado un número de verdad.")
+        await update.message.reply_text(
+            "No se ha proporcionado un número de verdad."
+            )
         return
 
     Verdad_index = int(context.args[0]) - 1
 
     try:
         verdad_seleccionada = Verdades_disponibles[Verdad_index]
-        await update.message.reply_text(f"Verdad {Verdad_index + 1}: {verdad_seleccionada}")
+        await update.message.reply_text(
+            f"Verdad {Verdad_index + 1}: {verdad_seleccionada}"
+            )
     except IndexError:
         await update.message.reply_text("La verdad seleccionada no es válida.")
 
