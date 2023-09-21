@@ -6,7 +6,7 @@ from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
-    Filters,
+    filters,
     MessageHandler
 )
 
@@ -65,7 +65,7 @@ app.add_handler(CommandHandler("Hola", Hola))
 app.add_handler(CommandHandler("Verdad", Verdad))
 
 # Maneja todos los mensajes de texto
-app.add_handler(MessageHandler(Filters.text, handle_message))
+app.add_handler(MessageHandler(filters.Text, handle_message))
 
 # arranca el Bot
 app.run_polling()
