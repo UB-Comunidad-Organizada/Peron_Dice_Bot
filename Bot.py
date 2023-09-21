@@ -20,14 +20,15 @@ load_dotenv(dotenv_path=os.path.join(os.getcwd(), 'env', 'config.env'))
 # Accede al valor del TOKEN
 TOKEN = os.getenv('Token')
 
-
-# Lista de Verdades disponibles
-
+# Accede al valor de chat
 
 def cargar_verdades():
+    # Cargar archivo JSON con verdades
     with open("verdades.json", "r", encoding="utf-8") as file:
         verdades = json.load(file)
+        # Obtener verdades disponibles
         verdades_disponibles = verdades.get("Verdades_disponibles")
+    # Retornar verdades disponibles
     return verdades_disponibles
 
 
