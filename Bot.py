@@ -1,14 +1,17 @@
 ﻿import os
-import json
 import logging
+import sqlite3
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
-    filters,
-    MessageHandler
+    MessageHandler,
+    CallbackContext,
+    filters
 )
 
 # Configurando el módulo de registro en Python.
@@ -20,20 +23,34 @@ load_dotenv(dotenv_path=os.path.join(os.getcwd(), 'env', 'config.env'))
 # Accede al valor del TOKEN
 TOKEN = os.getenv('Token')
 
-# Accede al valor de chat
+
+def ultimo_chat_id(
+    update: Update, context: CallbackContext, usuario_id: int
+) -> int:
+
+    # Obtener el último mensaje del usuario
+    ultimo_mensaje = context.bot.get_chat(usuario_id).last_message
+
+    # Obtener el ID del chat en el que se escribió el último mensaje
+    chat_id = ultimo_mensaje.chat_id
+
+    return chat_id
+
 
 def cargar_verdades():
-    # Cargar archivo JSON con verdades
-    with open("verdades.json", "r", encoding="utf-8") as file:
-        verdades = json.load(file)
-        # Obtener verdades disponibles
-        verdades_disponibles = verdades.get("Verdades_disponibles")
-    # Retornar verdades disponibles
+    # Conectarse a la base de datos SQLite
+    conn = sqlite3.connect('citas.db')
+    c = conn.cursor()
+
+    # Ejecutar una consulta de selección para obtener las verdades
+    c.execute("SELECT * FROM verdades")
+    verdades_disponibles = [row[0] for row in c.fetchall()]
+
+    # Cerrar la conexión
+    conn.close()
+
+    # Devolver las verdades
     return verdades_disponibles
-
-
-# Cargar el diccionario desde el archivo .json
-Verdades_disponibles = cargar_verdades()
 
 
 async def Hola(
@@ -60,11 +77,18 @@ async def Verdad(
         return
 
     Verdad_index = int(context.args[0]) - 1
+    # Llamando a la función para asignar a la variable `Verdades_disponibles`.
+    Verdades_disponibles = []
 
     try:
-        verdad_seleccionada = Verdades_disponibles[Verdad_index]
-        await update.message.reply_text(
-            f"Verdad {Verdad_index + 1}: {verdad_seleccionada}"
+        if Verdad_index >= 0 and Verdad_index < len(Verdades_disponibles):
+            verdad_seleccionada = Verdades_disponibles[Verdad_index]
+            await update.message.reply_text(
+                f"Verdad {Verdad_index + 1}: {verdad_seleccionada}"
+            )
+        else:
+            await update.message.reply_text(
+                "El número de verdad seleccionado no es válido."
             )
     except IndexError:
         logging.exception("La verdad seleccionada no es válida.")
@@ -75,7 +99,37 @@ async def handle_message(
     context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     try:
-        await print("Lo siento, no entiendo ese comando.")
+        # Extraer texto y dividirse en palabras
+        text = update.message.text
+        words = text.split()
+
+        # Conectarse a la base de datos
+        conn = sqlite3.connect('my_database.db')
+        c = conn.cursor()
+
+        # Insertar palabras en la base de datos
+        for word in words:
+            c.execute("Insertar en valores de palabras (?)", (word,))
+
+        # Confirme los cambios y cierre la conexión
+        conn.commit()
+        conn.close()
+
+        # Consulta la base de datos para los recuentos de palabras
+        c.execute(
+            "Seleccione Word, Count (*) como recuento del "
+            "grupo de palabras por palabra"
+        )
+        word_counts = c.fetchall()
+
+        # Generar una nube de palabras
+        wordcloud = WordCloud().generate_from_frequencies(dict(word_counts))
+
+        # Muestra la nube de palabras
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis("off")
+        plt.show()
+
     except Exception as e:
         logging.exception(e)
 
