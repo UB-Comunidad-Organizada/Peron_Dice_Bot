@@ -1,4 +1,5 @@
 ﻿import os
+import random
 import sqlite3
 import logging
 from dotenv import load_dotenv
@@ -39,25 +40,21 @@ def ultimo_chat_id(
         chat_id = None
 
 
-def cargar_verdades():
+def cargar_citas(etiqueta):
     # Conectarse a la base de datos SQLite
     conn = sqlite3.connect('citas.db')
     c = conn.cursor()
 
-    # Ejecutar una consulta de selección para obtener las verdades
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS verdades (
-        id INTEGER PRIMARY KEY,
-        verdad TEXT
-    )
-""")
-    verdades_disponibles = [row[0] for row in c.fetchall()]
+    # Ejecutar una consulta de selección para obtener las citas
+    c.execute("SELECT cita FROM citas WHERE etiqueta = ?", (etiqueta,))
+
+    citas_disponibles = [row[0] for row in c.fetchall()]
 
     # Cerrar la conexión
     conn.close()
 
-    # Devolver las verdades
-    return verdades_disponibles
+    # Devolver las citas
+    return citas_disponibles
 
 
 async def Hola(
@@ -73,37 +70,27 @@ async def Hola(
         logging.exception(e)
 
 
-async def Verdad(
+async def cita(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    if len(context.args) == 0:
+    if not context.args:
         await update.message.reply_text(
-            "No se ha proporcionado un número de verdad."
-            )
+            "No se ha proporcionado una etiqueta."
+        )
         return
 
-    Verdad_index = int(context.args[0]) - 1
-    # Llamando a la función para asignar a la variable `Verdades_disponibles`.
-    Verdades_disponibles = cargar_verdades()
+    etiqueta = context.args[0]
+    citas_disponibles = cargar_citas(etiqueta)
 
-    try:
-        condicion = Verdades_disponibles and Verdad_index >= 0
-        condicion = condicion and Verdad_index < len(Verdades_disponibles)
-
-        if condicion:
-            verdad_seleccionada = Verdades_disponibles[Verdad_index]
-            await update.message.reply_text(
-                f"Verdad {Verdad_index + 1}: {verdad_seleccionada}"
-            )
-        else:
-            await update.message.reply_text(
-                "El número de verdad seleccionado no es válido."
-            )
-    except IndexError:
+    if not citas_disponibles:
         await update.message.reply_text(
-            "El índice de verdad está fuera de rango."
+            "No se encontraron citas para la etiqueta proporcionada."
         )
+        return
+
+    cita_seleccionada = random.choice(citas_disponibles)
+    await update.message.reply_text(f"Cita: {cita_seleccionada}")
 
 
 async def handle_message(
@@ -118,7 +105,7 @@ async def handle_message(
         # Definir los comandos y las funciones correspondientes
         comandos = {
             "Hola": Hola,
-            "Verdad": Verdad
+            "Cita": cita
         }
 
         # Verificar si alguna de las palabras es un comando
@@ -134,7 +121,7 @@ async def handle_message(
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("Hola", Hola))
-app.add_handler(CommandHandler("Verdad", Verdad))
+app.add_handler(CommandHandler("Cita", cita))
 
 # Maneja todos los mensajes de texto
 app.add_handler(MessageHandler(filters.Text(), handle_message))
