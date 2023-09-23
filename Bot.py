@@ -1,8 +1,5 @@
 ﻿import os
 import time
-# from collections import Counter
-# import matplotlib.pyplot as plt
-# from wordcloud import WordCloud
 import sqlite3
 import logging
 from dotenv import load_dotenv
