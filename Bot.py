@@ -1,5 +1,4 @@
 ﻿import os
-import time
 import sqlite3
 import logging
 from dotenv import load_dotenv
@@ -115,46 +114,20 @@ async def handle_message(
         # Extraer el texto y dividirlo en palabras
         texto = update.message.text
         palabras = texto.split()
-        # Conectar a la base de datos
-        conn = sqlite3.connect('mi_base_de_datos.db')
-        if conn:
-            c = conn.cursor()
-            try:
-                c.execute('''
-                    CREATE TABLE IF NOT EXISTS palabras (
-                        palabra TEXT,
-                        timestamp INTEGER
-                        )
-                ''')
-            except sqlite3.OperationalError:
-                logging.exception("No se pudo crear la tabla 'palabras'.")
-        # Insertar palabras en la base de datos con la marca de tiempo actual
-        timestamp = int(time.time())
+
+        # Definir los comandos y las funciones correspondientes
+        comandos = {
+            "Hola": Hola,
+            "Verdad": Verdad
+        }
+
+        # Verificar si alguna de las palabras es un comando
         for palabra in palabras:
-            c.execute(
-                "INSERT INTO palabras VALUES (?, ?)", (palabra, timestamp)
-            )
-        # Confirmar los cambios
-        conn.commit()
-        # Consultar la BD para contar las palabras en los últimos 10 minutos
-        memoria_corta = timestamp - 600  # 600 segundos = 10 minutos
-        c.execute(
-            "SELECT palabra, COUNT(*) AS count FROM "
-            "palabras WHERE timestamp > ? GROUP BY palabra",
-            (memoria_corta,)
-        )
-        conteo_palabras = c.fetchall()
-        # Encontrar la palabra más utilizada
-        if conteo_palabras:
-            palabra_mas_usada = max(conteo_palabras, key=lambda x: x[1])[0]
-            print(
-                f"La palabra más utilizada en los últimos 10 minutos es: "
-                f"{palabra_mas_usada}"
-            )
-        else:
-            print("No se utilizaron palabras en los últimos 10 minutos.")
-        # Cerrar la conexión
-        conn.close()
+            if palabra in comandos:
+                # Si la palabra es un comando, 
+                # ejecutar la función correspondiente
+                await comandos[palabra](update, context)
+
     except Exception as e:
         logging.exception(e)
 
