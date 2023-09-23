@@ -1,8 +1,10 @@
 ﻿import os
-import logging
+import time
+# from collections import Counter
+# import matplotlib.pyplot as plt
+# from wordcloud import WordCloud
 import sqlite3
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
+import logging
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -29,12 +31,16 @@ def ultimo_chat_id(
 ) -> int:
 
     # Obtener el último mensaje del usuario
-    ultimo_mensaje = context.bot.get_chat(usuario_id).last_message
-
-    # Obtener el ID del chat en el que se escribió el último mensaje
-    chat_id = ultimo_mensaje.chat_id
-
-    return chat_id
+    try:
+        ultimo_mensaje = context.bot.get_chat(usuario_id).last_message
+        if ultimo_mensaje:
+            chat_id = ultimo_mensaje.chat_id
+        else:
+            chat_id = None
+        return chat_id
+    except AttributeError:
+        logging.exception("El usuario no tiene mensajes.")
+        chat_id = None
 
 
 def cargar_verdades():
@@ -43,7 +49,12 @@ def cargar_verdades():
     c = conn.cursor()
 
     # Ejecutar una consulta de selección para obtener las verdades
-    c.execute("SELECT * FROM verdades")
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS verdades (
+        id INTEGER PRIMARY KEY,
+        verdad TEXT
+    )
+""")
     verdades_disponibles = [row[0] for row in c.fetchall()]
 
     # Cerrar la conexión
@@ -78,10 +89,13 @@ async def Verdad(
 
     Verdad_index = int(context.args[0]) - 1
     # Llamando a la función para asignar a la variable `Verdades_disponibles`.
-    Verdades_disponibles = []
+    Verdades_disponibles = cargar_verdades()
 
     try:
-        if Verdad_index >= 0 and Verdad_index < len(Verdades_disponibles):
+        condicion = Verdades_disponibles and Verdad_index >= 0
+        condicion = condicion and Verdad_index < len(Verdades_disponibles)
+
+        if condicion:
             verdad_seleccionada = Verdades_disponibles[Verdad_index]
             await update.message.reply_text(
                 f"Verdad {Verdad_index + 1}: {verdad_seleccionada}"
@@ -91,7 +105,9 @@ async def Verdad(
                 "El número de verdad seleccionado no es válido."
             )
     except IndexError:
-        logging.exception("La verdad seleccionada no es válida.")
+        await update.message.reply_text(
+            "El índice de verdad está fuera de rango."
+        )
 
 
 async def handle_message(
@@ -99,40 +115,51 @@ async def handle_message(
     context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     try:
-        # Extraer texto y dividirse en palabras
-        text = update.message.text
-        words = text.split()
-
-        # Conectarse a la base de datos
-        conn = sqlite3.connect('my_database.db')
-        c = conn.cursor()
-
-        # Insertar palabras en la base de datos
-        for word in words:
-            c.execute("Insertar en valores de palabras (?)", (word,))
-
-        # Confirme los cambios y cierre la conexión
+        # Extraer el texto y dividirlo en palabras
+        texto = update.message.text
+        palabras = texto.split()
+        # Conectar a la base de datos
+        conn = sqlite3.connect('mi_base_de_datos.db')
+        if conn:
+            c = conn.cursor()
+            try:
+                c.execute('''
+                    CREATE TABLE IF NOT EXISTS palabras (
+                        palabra TEXT,
+                        timestamp INTEGER
+                        )
+                ''')
+            except sqlite3.OperationalError:
+                logging.exception("No se pudo crear la tabla 'palabras'.")
+        # Insertar palabras en la base de datos con la marca de tiempo actual
+        timestamp = int(time.time())
+        for palabra in palabras:
+            c.execute(
+                "INSERT INTO palabras VALUES (?, ?)", (palabra, timestamp)
+            )
+        # Confirmar los cambios
         conn.commit()
-        conn.close()
-
-        # Consulta la base de datos para los recuentos de palabras
+        # Consultar la BD para contar las palabras en los últimos 10 minutos
+        memoria_corta = timestamp - 600  # 600 segundos = 10 minutos
         c.execute(
-            "Seleccione Word, Count (*) como recuento del "
-            "grupo de palabras por palabra"
+            "SELECT palabra, COUNT(*) AS count FROM "
+            "palabras WHERE timestamp > ? GROUP BY palabra",
+            (memoria_corta,)
         )
-        word_counts = c.fetchall()
-
-        # Generar una nube de palabras
-        wordcloud = WordCloud().generate_from_frequencies(dict(word_counts))
-
-        # Muestra la nube de palabras
-        plt.imshow(wordcloud, interpolation='bilinear')
-        plt.axis("off")
-        plt.show()
-
+        conteo_palabras = c.fetchall()
+        # Encontrar la palabra más utilizada
+        if conteo_palabras:
+            palabra_mas_usada = max(conteo_palabras, key=lambda x: x[1])[0]
+            print(
+                f"La palabra más utilizada en los últimos 10 minutos es: "
+                f"{palabra_mas_usada}"
+            )
+        else:
+            print("No se utilizaron palabras en los últimos 10 minutos.")
+        # Cerrar la conexión
+        conn.close()
     except Exception as e:
         logging.exception(e)
-
 
 app = ApplicationBuilder().token(TOKEN).build()
 

@@ -4,5 +4,11 @@
     },
     "python.formatting.provider": "none",
     "docwriter.language": "Spanish",
-    "editor.cursorSmoothCaretAnimation": "on"
+    "editor.cursorSmoothCaretAnimation": "on",
+    "codeium.aggressiveShutdown": true,
+    "codeium.enableSearch": true,
+    "docwriter.progress.trackFunctions": true,
+    "docwriter.progress.trackMethods": true,
+    "docwriter.progress.trackClasses": true,
+    "docwriter.progress.trackTypes": true
 }
