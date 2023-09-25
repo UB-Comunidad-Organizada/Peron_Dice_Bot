@@ -14,7 +14,7 @@ from telegram.ext import (
 )
 
 # Configurando el módulo de registro en Python.
-logging.basicConfig(filename='error.log', level=logging.ERROR)
+logging.basicConfig(filename= 'logs\error.log', level=logging.ERROR)
 
 # Cargar variables de entorno desde el archivo config.env en la carpeta env
 load_dotenv(dotenv_path=os.path.join(os.getcwd(), 'env', 'config.env'))
