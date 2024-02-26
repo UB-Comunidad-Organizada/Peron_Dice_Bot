@@ -11,5 +11,5 @@
     "docwriter.progress.trackMethods": true,
     "docwriter.progress.trackClasses": true,
     "docwriter.progress.trackTypes": true,
-    "CodeGPT.apiKey": "CodeGPT Plus Beta"
+    "CodeGPT.apiKey": "Ollama"
 }
